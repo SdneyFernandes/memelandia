@@ -69,14 +69,13 @@ public class ServiceMeme {
      logger.info("Deletando meme com ID: {}", id);
      repositoriMeme.deleteById(id);
  }
+
  
  public Meme obterMemeDoDia() {
 	    logger.info("Selecionando meme do dia.");
-	    Meme meme = repositoriMeme.findRandomMeme();
-	    if (meme == null) {
-	        throw new RuntimeException("Nenhum meme encontrado no banco de dados.");
-	    }
-	    return meme;
+	    return Optional.ofNullable(repositoriMeme.findRandomMeme())
+	                   .orElseThrow(() -> new RuntimeException("Nenhum meme encontrado no banco de dados."));
 	}
+
 
 }

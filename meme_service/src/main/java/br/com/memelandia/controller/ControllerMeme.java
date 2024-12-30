@@ -53,9 +53,15 @@ public class ControllerMeme {
      return ResponseEntity.noContent().build();
  }
  
+ @GetMapping("/meme-do-dia")
  public ResponseEntity<Meme> obterMemeDoDia() {
      logger.info("Recebida requisição para obter o meme do dia.");
      Meme meme = serviceMeme.obterMemeDoDia();
      return ResponseEntity.ok(meme);
+ }
+ 
+ @GetMapping("/test")
+ public ResponseEntity<String> test() {
+     return ResponseEntity.ok("Serviço está rodando");
  }
 }
