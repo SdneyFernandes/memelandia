@@ -14,6 +14,7 @@
         <module>meme_service</module>
         <module>categoria_service</module>
         <module>usuario_service</module>
+        <module>eureka_serverr</module>
     </modules>
 
     <properties>
@@ -30,6 +31,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>2024.0.0</version> <!-- Certifique-se de usar a versão correta -->
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
         </dependencies>
     </dependencyManagement>
 
