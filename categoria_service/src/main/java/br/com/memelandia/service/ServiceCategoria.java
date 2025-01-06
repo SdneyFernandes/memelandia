@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 
 import br.com.memelandia.entities.Categoria;
@@ -22,11 +23,19 @@ public class ServiceCategoria {
 	
 	private Logger logger = LoggerFactory.getLogger(ServiceCategoria.class);
 	
+	private final StreamBridge streamBridge;
+	
 	@Autowired
 	private RepositoriCategoria repositoriCategoria;
 	
 	@Autowired
     private MeterRegistry meterRegistry; // Registro de métricas
+	
+	public ServiceCategoria(StreamBridge streamBridge, RepositoriCategoria repositoriCategoria) {
+        this.streamBridge = streamBridge;
+        this.repositoriCategoria = repositoriCategoria;
+    }
+	
 	
 	public List<Categoria> listarTodasCategorias() {
 		logger.info("Recebida requisição para listar todas as categorias.");
@@ -75,6 +84,9 @@ public class ServiceCategoria {
 		Categoria salva = repositoriCategoria.save(categoria);
 		logger.info("Categoria criada com sucesso: {}", salva);
 		meterRegistry.counter("categoria.criar.sucesso").increment(); // Métrica para sucesso
+		
+		 // Publicando evento de criação de usuário
+        streamBridge.send("categoriaEventos-out-0", salva);
 		
 		long endTime = System.currentTimeMillis();
 		meterRegistry.timer("categoria.criar.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);

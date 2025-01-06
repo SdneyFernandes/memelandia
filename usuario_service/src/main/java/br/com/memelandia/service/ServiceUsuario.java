@@ -12,6 +12,9 @@ import br.com.memelandia.entities.Usuario;
 import br.com.memelandia.repositori.RepositoriUsuario;
 import io.micrometer.core.instrument.*;
 
+import org.springframework.cloud.stream.function.StreamBridge;
+
+
 /**
  * @author fsdney
  */
@@ -20,12 +23,21 @@ import io.micrometer.core.instrument.*;
 public class ServiceUsuario {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceUsuario.class);
-
+    
+    private final StreamBridge streamBridge;
+    
     @Autowired
     private RepositoriUsuario repositoriUsuario;
     
     @Autowired
     private MeterRegistry meterRegistry; // Registro de métricas
+    
+
+    public ServiceUsuario(StreamBridge streamBridge, RepositoriUsuario repositoriUsuario) {
+        this.streamBridge = streamBridge;
+        this.repositoriUsuario = repositoriUsuario;
+    }
+
 
     public List<Usuario> listarTodosUsuarios() {
     	logger.info("Recebida requisição para listar todos os usuários.");
@@ -54,31 +66,33 @@ public class ServiceUsuario {
     }
 
     public Usuario criarUsuario(Usuario usuario) {
-    	logger.info("Recebida requisição para criar novo usuário: {}", usuario);
-    	
-    	// Contador de chamadas ao método
-    	meterRegistry.counter("usuario.criar.chamadas").increment();
-    	
-    	// Medição de tempo de execução
+        logger.info("Recebida requisição para criar novo usuário: {}", usuario);
+        
+        meterRegistry.counter("usuario.criar.chamadas").increment();
+        
         long startTime = System.currentTimeMillis();
         
         Optional<Usuario> usuarioExistente = repositoriUsuario.findByName(usuario.getName());
         usuario.setDataCadastro(new java.sql.Date(System.currentTimeMillis()));
         
-        if(usuarioExistente.isPresent()) {
-        	logger.warn("O usuari com o nome '{}' já existe.", usuario.getName());
-			//return ResponseEntity.status(HttpStatus.CONFLICT).build();
-			meterRegistry.counter("usuario.criar.existente").increment(); // Métrica para 
+        if (usuarioExistente.isPresent()) {
+            logger.warn("O usuário com o nome '{}' já existe.", usuario.getName());
+            meterRegistry.counter("usuario.criar.existente").increment();
         }
+        
         Usuario salvo = repositoriUsuario.save(usuario);
         logger.info("Usuário criado com sucesso: {}", salvo);
-        meterRegistry.counter("usuario.criar.sucesso").increment(); // Métrica para sucesso
-		
-		long endTime = System.currentTimeMillis();
-		meterRegistry.timer("usuario.criar.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);
-		
+        meterRegistry.counter("usuario.criar.sucesso").increment();
+        
+        // Publicando evento de criação de usuário
+        streamBridge.send("usuarioEventos-out-0", salvo);
+        
+        long endTime = System.currentTimeMillis();
+        meterRegistry.timer("usuario.criar.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);
+        
         return salvo;
     }
+
 
     public Optional<Usuario> buscarUsuarioPorId(Long id) {
     	logger.info("Recebida requisição para buscar usuário com ID: {}", id);
