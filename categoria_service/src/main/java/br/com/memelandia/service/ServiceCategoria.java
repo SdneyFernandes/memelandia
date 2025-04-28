@@ -2,16 +2,17 @@ package br.com.memelandia.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.time.LocalDate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 
 import br.com.memelandia.entities.Categoria;
 import br.com.memelandia.repositori.RepositoriCategoria;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.cloud.stream.function.StreamBridge;
 
 
 /**
@@ -20,129 +21,112 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 @Service
 public class ServiceCategoria {
-	
-	private Logger logger = LoggerFactory.getLogger(ServiceCategoria.class);
-	
-	private final StreamBridge streamBridge;
-	
-	@Autowired
-	private RepositoriCategoria repositoriCategoria;
-	
-	@Autowired
-    private MeterRegistry meterRegistry; // Registro de métricas
-	
-	public ServiceCategoria(StreamBridge streamBridge, RepositoriCategoria repositoriCategoria) {
+
+    private static final Logger logger = LoggerFactory.getLogger(ServiceCategoria.class);
+
+    private final StreamBridge streamBridge;
+    private final RepositoriCategoria repositoriCategoria;
+    private final MeterRegistry meterRegistry;
+
+    public ServiceCategoria(StreamBridge streamBridge, RepositoriCategoria repositoriCategoria, MeterRegistry meterRegistry) {
         this.streamBridge = streamBridge;
         this.repositoriCategoria = repositoriCategoria;
+        this.meterRegistry = meterRegistry;
     }
-	
-	
-	public List<Categoria> listarTodasCategorias() {
-		logger.info("Recebida requisição para listar todas as categorias.");
-		
-		// Contador de chamadas ao método
+    
+    
+
+    public List<Categoria> listarTodasCategorias() {
+        logger.info("Recebida requisição para listar todas as categorias.");
         meterRegistry.counter("categoria.listar.todas.chamadas").increment();
 
-        // Medição de tempo de execução
-        long startTime = System.currentTimeMillis();
-
+        long start = System.currentTimeMillis();
         List<Categoria> categorias = repositoriCategoria.findAll();
-        
-        long endTime = System.currentTimeMillis();
-        meterRegistry.timer("categoria.listar.todas.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);
+        long end = System.currentTimeMillis();
+        meterRegistry.timer("categoria.listar.todas.tempo").record(end - start, TimeUnit.MILLISECONDS);
 
         if (categorias.isEmpty()) {
-            logger.warn("A lista está vazia.");
-            meterRegistry.counter("categoria.listar.todas.vazio").increment(); // Métrica para listas vazias
+            logger.warn("Lista de categorias retornou vazia.");
+            meterRegistry.counter("categoria.listar.todas.vazio").increment();
         } else {
             logger.info("Total de categorias encontradas: {}", categorias.size());
-            meterRegistry.counter("categoria.listar.todas.sucesso").increment(); // Métrica para sucesso
-            meterRegistry.gauge("categoria.listar.todas.tamanho", categorias, List::size); // Tamanho da lista retornada
+            meterRegistry.counter("categoria.listar.todas.sucesso").increment();
+            meterRegistry.gauge("categoria.listar.todas.quantidade", categorias, List::size);
         }
 
         return categorias;
     }
 
-	public Categoria criarCategoria(Categoria categoria) {
-		logger.info("Recebida requisição para criar nova categoria: {}", categoria);
-		
-		// Contador de chamadas ao método
-		meterRegistry.counter("categoria.criar.chamadas").increment();
+    public Optional<Categoria> criarCategoria(Categoria categoria) {
+        logger.info("Recebida requisição para criar nova categoria: {}", categoria);
+        meterRegistry.counter("categoria.criar.chamadas").increment();
 
-		// Medição de tempo de execução
-        long startTime = System.currentTimeMillis();
-		
-		Optional<Categoria> categoriaExistente = repositoriCategoria.findByName(categoria.getName());
-		categoria.setDataCadastro(new java.sql.Date(System.currentTimeMillis()));
-		
-		if (categoriaExistente.isPresent()) {
-			logger.warn("A categoria com o nome '{}' já existe.", categoria.getName());
-			//return ResponseEntity.status(HttpStatus.CONFLICT).build();
-			meterRegistry.counter("categoria.criar.existente").increment(); // Métrica para categoria já existente
-		} 
-		
-		Categoria salva = repositoriCategoria.save(categoria);
-		logger.info("Categoria criada com sucesso: {}", salva);
-		meterRegistry.counter("categoria.criar.sucesso").increment(); // Métrica para sucesso
-		
-		 // Publicando evento de criação de usuário
-        streamBridge.send("categoriaEventos-out-0", salva);
-		
-		long endTime = System.currentTimeMillis();
-		meterRegistry.timer("categoria.criar.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);
-		
-		return salva;
-	}
-	
-	public Optional<Categoria> buscarCategoriaPorID(Long id) {
+        long start = System.currentTimeMillis();
+
+        Optional<Categoria> existente = repositoriCategoria.findByName(categoria.getName());
+        if (existente.isPresent()) {
+            logger.warn("Categoria com nome '{}' já existe.", categoria.getName());
+            meterRegistry.counter("categoria.criar.existente").increment();
+            return Optional.empty();
+        }
+
+        categoria.setDataCadastro(LocalDate.now());
+        Categoria salva = repositoriCategoria.save(categoria);
+        meterRegistry.counter("categoria.criar.sucesso").increment();
+        logger.info("Categoria criada com sucesso: {}", salva);
+
+        try {
+            streamBridge.send("categoriaEventos-out-0", salva);
+            logger.info("Evento de criação de categoria enviado com sucesso via StreamBridge.");
+        } catch (Exception e) {
+            logger.error("Erro ao enviar evento de criação via StreamBridge: {}", e.getMessage());
+            meterRegistry.counter("categoria.criar.evento.falha").increment();
+        }
+
+        long end = System.currentTimeMillis();
+        meterRegistry.timer("categoria.criar.tempo").record(end - start, TimeUnit.MILLISECONDS);
+
+        return Optional.of(salva);
+    }
+
+    public Optional<Categoria> buscarCategoriaPorID(Long id) {
         logger.info("Recebida requisição para buscar categoria com ID: {}", id);
-        
-     // Contador de chamadas ao método
-     		meterRegistry.counter("categoria.buscarPorID.chamadas").increment();
+        meterRegistry.counter("categoria.buscar.id.chamadas").increment();
 
-     		// Medição de tempo de execução
-             long startTime = System.currentTimeMillis();
-     	 
-     	Optional<Categoria> categoria = repositoriCategoria.findById(id);
-     	
-     	long endTime = System.currentTimeMillis();
-		meterRegistry.timer("categoria.buscarPorID.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);
-     	 
-     	 
-     	if (categoria.isPresent()) {
+        long start = System.currentTimeMillis();
+        Optional<Categoria> categoria = repositoriCategoria.findById(id);
+        long end = System.currentTimeMillis();
+        meterRegistry.timer("categoria.buscar.id.tempo").record(end - start, TimeUnit.MILLISECONDS);
+
+        if (categoria.isPresent()) {
             logger.info("Categoria encontrada: {}", categoria.get());
-            meterRegistry.counter("categoria.buscarPorID.sucesso").increment(); // Métrica para sucesso
-            
+            meterRegistry.counter("categoria.buscar.id.sucesso").increment();
         } else {
             logger.warn("Categoria com ID {} não encontrada.", id);
-            meterRegistry.counter("categoria.buscarPorID.naoEncontrada").increment(); // Métrica para falha
-            
-            
+            meterRegistry.counter("categoria.buscar.id.naoencontrada").increment();
         }
+
         return categoria;
     }
 
-	public void deletarCategoria(Long id) {
-		logger.info("Recebida requisição para deletar categoria com ID: {}", id);
-		
-		// Contador de chamadas ao método
-		meterRegistry.counter("categoria.deletar.chamadas").increment();
+    public boolean deletarCategoria(Long id) {
+        logger.info("Recebida requisição para deletar categoria com ID: {}", id);
+        meterRegistry.counter("categoria.deletar.chamadas").increment();
 
-		// Medição de tempo de execução
-        long startTime = System.currentTimeMillis();
-		
-		Optional<Categoria> categoriaExistente = repositoriCategoria.findById(id);
-		if (categoriaExistente.isPresent()) {
+        long start = System.currentTimeMillis();
+
+        Optional<Categoria> categoriaExistente = repositoriCategoria.findById(id);
+        if (categoriaExistente.isPresent()) {
             repositoriCategoria.deleteById(id);
             logger.info("Categoria com ID {} deletada com sucesso.", id);
-            meterRegistry.counter("categoria.deletar.sucesso").increment(); // Métrica para sucesso
+            meterRegistry.counter("categoria.deletar.sucesso").increment();
+            meterRegistry.timer("categoria.deletar.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+            return true;
         } else {
-            logger.warn("Categoria com ID {} não encontrada.", id);
-            meterRegistry.counter("categoria.deletar.naoEncontrada").increment(); // Métrica para falha
+            logger.warn("Categoria com ID {} não encontrada para exclusão.", id);
+            meterRegistry.counter("categoria.deletar.naoencontrada").increment();
+            meterRegistry.timer("categoria.deletar.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+            return false;
         }
-        
-        long endTime = System.currentTimeMillis();
-		meterRegistry.timer("categoria.deletar.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);
-	}
-	
+    }
 }

@@ -38,7 +38,6 @@ public class Usuario {
 	@Column(name = "email", nullable = false, unique = true)
 	private String email;
 	
-	@NotNull(message = "Data de Cadastro é obrigatoria")
 	@Column(name = "data_cadastro", nullable = false)
 	private LocalDate dataCadastro;
 

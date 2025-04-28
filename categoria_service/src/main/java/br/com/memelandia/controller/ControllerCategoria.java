@@ -6,6 +6,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import br.com.memelandia.entities.Categoria;
 import br.com.memelandia.service.ServiceCategoria;
 
@@ -13,36 +16,51 @@ import br.com.memelandia.service.ServiceCategoria;
  * @author fsdney
  */
 
+
+@Tag(name = "Categorias", description = "Endpoints para gerenciamento de categorias")
 @RestController
 @RequestMapping("/categoria_service")
 public class ControllerCategoria {
-	
-	@Autowired
-	private ServiceCategoria serviceCategoria;
-	
-	@GetMapping 
-	public ResponseEntity<List<Categoria>> listarTodasCategorias() {
-		List<Categoria> categorias = serviceCategoria.listarTodasCategorias();
-		return ResponseEntity.ok(categorias);
-	}
-	
-	@PostMapping
-	public ResponseEntity<Categoria> criarCategoria(@RequestBody Categoria categoria) {
-		Categoria novaCategoria = serviceCategoria.criarCategoria(categoria);
-		return ResponseEntity.status(HttpStatus.CREATED).body(novaCategoria);
-	}
-	
-	@GetMapping("/{id}")
-    public ResponseEntity<Categoria> buscarCategoriaPorId(@PathVariable Long id) {
-        return serviceCategoria.buscarCategoriaPorID(id)
-                .map(categoria -> ResponseEntity.ok(categoria))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
-    }
-    
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletarCategoria(@PathVariable Long id) {
-        serviceCategoria.deletarCategoria(id);
-        return ResponseEntity.noContent().build();
+
+    private final ServiceCategoria serviceCategoria;
+
+    public ControllerCategoria(ServiceCategoria serviceCategoria) {
+        this.serviceCategoria = serviceCategoria;
     }
 
+    @Operation(summary = "Listar", description = "Método para listar todas as categorias")
+    @GetMapping
+    public ResponseEntity<List<Categoria>> listarTodasCategorias() {
+        List<Categoria> categorias = serviceCategoria.listarTodasCategorias();
+        return ResponseEntity.ok(categorias);
+    }
+
+    @Operation(summary = "Criar", description = "Método para criar uma nova categoria")
+    @PostMapping
+    public ResponseEntity<?> criarCategoria(@RequestBody Categoria categoria) {
+        return serviceCategoria.criarCategoria(categoria)
+                .<ResponseEntity<?>>map(novaCategoria -> ResponseEntity.status(HttpStatus.CREATED).body(novaCategoria))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body("Categoria com este nome já existe."));
+    }
+
+    @Operation(summary = "Buscar", description = "Método para buscar uma categoria pelo ID")
+    @GetMapping("/{id}")
+    public ResponseEntity<Categoria> buscarCategoriaPorId(@PathVariable Long id) {
+        return serviceCategoria.buscarCategoriaPorID(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    @Operation(summary = "Deletar", description = "Método para deletar uma categoria pelo ID")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deletarCategoria(@PathVariable Long id) {
+        boolean removida = serviceCategoria.deletarCategoria(id);
+        if (removida) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Categoria não encontrada para exclusão.");
+        }
+    }
 }
