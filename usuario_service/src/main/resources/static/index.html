@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuário Service</title>
+    <script>
+        async function listarUsuarios() {
+            const response = await fetch('/usuario_service');
+            const usuarios = await response.json();
+            const lista = document.getElementById('listaUsuarios');
+            lista.innerHTML = '';
+            usuarios.forEach(usuario => {
+                const item = document.createElement('li');
+                item.textContent = `ID: ${usuario.id}, Nome: ${usuario.name}, Email: ${usuario.email}`;
+                lista.appendChild(item);
+            });
+        }
+
+        async function criarUsuario() {
+            const nome = document.getElementById('nome').value;
+            const email = document.getElementById('email').value;
+
+            const response = await fetch('/usuario_service', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: nome, email: email })
+            });
+
+            if (response.ok) {
+                alert('Usuário criado com sucesso!');
+                listarUsuarios();
+            } else {
+                alert('Erro ao criar usuário.');
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Usuário Service</h1>
+    <h2>Criar Usuário</h2>
+    <input type="text" id="nome" placeholder="Nome" required>
+    <input type="email" id="email" placeholder="Email" required>
+    <button onclick="criarUsuario()">Criar Usuário</button>
+
+    <h2>Lista de Usuários</h2>
+    <button onclick="listarUsuarios()">Listar Usuários</button>
+    <ul id="listaUsuarios"></ul>
+</body>
+</html>

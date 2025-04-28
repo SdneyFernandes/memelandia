@@ -1,24 +1,27 @@
 package br.com.memelandia.entities;
 
-import java.sql.Date;
+import java.time.LocalDate;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Email;
-import lombok.Data;
+import jakarta.persistence. *;
+import jakarta.validation.constraints. *;
+import lombok. *;
 
 /**
+ * 
+ * Representa um usuário do sistema.
+ * Armazena informações de identificação e data de cadastro.
+ * 
  * @author fsdney
  */
 
 @Entity
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "usuario")
 public class Usuario {
+
+	
 	
 	@Id
 	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sequence_usuario")
@@ -27,15 +30,16 @@ public class Usuario {
 	private Long id;
 	
 	@NotBlank(message = "Nome é obrigatório")
-	@Column(name = "name", nullable = false)
-	private String name;
+	@Column(name = "nome", nullable = false)
+	private String nome;
 	
 	@Email(message = "E-mail inválido")
     @NotBlank(message = "E-mail é obrigatório")
-	@Column(name = "email", nullable = false)
+	@Column(name = "email", nullable = false, unique = true)
 	private String email;
 	
+	@NotNull(message = "Data de Cadastro é obrigatoria")
 	@Column(name = "data_cadastro", nullable = false)
-	private Date dataCadastro;
+	private LocalDate dataCadastro;
 
 }

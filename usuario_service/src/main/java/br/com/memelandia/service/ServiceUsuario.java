@@ -1,11 +1,10 @@
 package br.com.memelandia.service;
 
-import java.util.List;
-import java.util.Optional;
+import java.util. *;
+import java.util.concurrent.TimeUnit;
+import java.time.LocalDate;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j. *;
 import org.springframework.stereotype.Service;
 
 import br.com.memelandia.entities.Usuario;
@@ -22,123 +21,111 @@ import org.springframework.cloud.stream.function.StreamBridge;
 @Service
 public class ServiceUsuario {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServiceUsuario.class);
-    
-    private final StreamBridge streamBridge;
-    
-    @Autowired
-    private RepositoriUsuario repositoriUsuario;
-    
-    @Autowired
-    private MeterRegistry meterRegistry; // Registro de métricas
-    
+	  private static final Logger logger = LoggerFactory.getLogger(ServiceUsuario.class);
 
-    public ServiceUsuario(StreamBridge streamBridge, RepositoriUsuario repositoriUsuario) {
-        this.streamBridge = streamBridge;
-        this.repositoriUsuario = repositoriUsuario;
+	    private final StreamBridge streamBridge;
+	    private final RepositoriUsuario repositoriUsuario;
+	    private final MeterRegistry meterRegistry;
+
+	    public ServiceUsuario(StreamBridge streamBridge, RepositoriUsuario repositoriUsuario, MeterRegistry meterRegistry) {
+	        this.streamBridge = streamBridge;
+	        this.repositoriUsuario = repositoriUsuario;
+	        this.meterRegistry = meterRegistry;
+	    
     }
 
 
-    public List<Usuario> listarTodosUsuarios() {
-    	logger.info("Recebida requisição para listar todos os usuários.");
-    	
-    	// Contador de chamadas ao método
-        meterRegistry.counter("usuario.listar.todas.chamadas").increment();
-        
-        // Medição de tempo de execução
-        long startTime = System.currentTimeMillis();
-        
-        List<Usuario> usuarios = repositoriUsuario.findAll();
-        
-        long endTime = System.currentTimeMillis();
-        meterRegistry.timer("usuario.listar.todas.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);
-        
-        if (usuarios.isEmpty()) {
-        	logger.warn("A lista está vazia.");
-            meterRegistry.counter("usuario.listar.todas.vazio").increment();
-        } else {
-        	logger.info("Total de usuários encontrados: {}", usuarios.size());
-        	meterRegistry.counter("usuario.listar.todas.sucesso").increment(); // Métrica para sucesso
-            meterRegistry.gauge("usuario.listar.todas.tamanho", usuarios, List::size); // Tamanho da lista retornada
-        }
-        
-        return usuarios;
-    }
+	    public List<Usuario> listarTodosUsuarios() {
+	        logger.info("Recebida requisição para listar todos os usuários.");
+	        meterRegistry.counter("usuario.listar.todas.chamadas").increment();
 
-    public Usuario criarUsuario(Usuario usuario) {
-        logger.info("Recebida requisição para criar novo usuário: {}", usuario);
-        
-        meterRegistry.counter("usuario.criar.chamadas").increment();
-        
-        long startTime = System.currentTimeMillis();
-        
-        Optional<Usuario> usuarioExistente = repositoriUsuario.findByName(usuario.getName());
-        usuario.setDataCadastro(new java.sql.Date(System.currentTimeMillis()));
-        
-        if (usuarioExistente.isPresent()) {
-            logger.warn("O usuário com o nome '{}' já existe.", usuario.getName());
-            meterRegistry.counter("usuario.criar.existente").increment();
-        }
-        
-        Usuario salvo = repositoriUsuario.save(usuario);
-        logger.info("Usuário criado com sucesso: {}", salvo);
-        meterRegistry.counter("usuario.criar.sucesso").increment();
-        
-        // Publicando evento de criação de usuário
-        streamBridge.send("usuarioEventos-out-0", salvo);
-        
-        long endTime = System.currentTimeMillis();
-        meterRegistry.timer("usuario.criar.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);
-        
-        return salvo;
-    }
+	        long start = System.currentTimeMillis();
+	        List<Usuario> usuarios = repositoriUsuario.findAll();
+	        long end = System.currentTimeMillis();
+	        meterRegistry.timer("usuario.listar.todas.tempo").record(end - start, TimeUnit.MILLISECONDS);
 
+	        if (usuarios.isEmpty()) {
+	            logger.warn("Lista de usuários retornou vazia.");
+	            meterRegistry.counter("usuario.listar.todas.vazio").increment();
+	        } else {
+	            logger.info("Total de usuários encontrados: {}", usuarios.size());
+	            meterRegistry.counter("usuario.listar.todas.sucesso").increment();
+	            meterRegistry.gauge("usuario.listar.todas.quantidade", usuarios, List::size);
+	        }
 
-    public Optional<Usuario> buscarUsuarioPorId(Long id) {
-    	logger.info("Recebida requisição para buscar usuário com ID: {}", id);
-    	
-    	// Contador de chamadas ao método
-    	meterRegistry.counter("usuario.buscarPorID.chamadas").increment();
+	        return usuarios;
+	    }
 
-    	// Medição de tempo de execução
-    	long startTime = System.currentTimeMillis();
-    	
-    	
-        Optional<Usuario> usuario = repositoriUsuario.findById(id);
-        long endTime = System.currentTimeMillis();
-		meterRegistry.timer("usuario.buscarPorID.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);
-		
-        if (usuario.isPresent()) {
-            logger.info("Usuário encontrado: {}", usuario.get());
-            meterRegistry.counter("usuario.buscarPorID.sucesso").increment(); // Métrica para sucesso
-        } else {
-            logger.warn("Usuário com ID {} não encontrado.", id);
-            meterRegistry.counter("categoria.buscarPorID.naoEncontrada").increment(); // Métrica para falha
-        }
-        return usuario;
-    }
+	    public Optional<Usuario> criarUsuario(Usuario usuario) {
+	        logger.info("Recebida requisição para criar novo usuário: {}", usuario);
+	        meterRegistry.counter("usuario.criar.chamadas").increment();
 
-    public void deletarUsuario(Long id) {
-    	logger.info("Recebida requisição para deletar usuário com ID: {}", id);
-    	
-    	
-        // Contador de chamadas ao método
-		meterRegistry.counter("usuario.deletar.chamadas").increment();
-		// Medição de tempo de execução
-        long startTime = System.currentTimeMillis();
-        
-        Optional<Usuario> usuarioExistente = repositoriUsuario.findById(id);
-        if (usuarioExistente.isPresent()) {
-        	repositoriUsuario.deleteById(id);
-        	logger.info("usuario com ID {} deletada com sucesso.", id);
-            meterRegistry.counter("usuario.deletar.sucesso").increment(); // Métrica para sucesso
-        } else {
-        	logger.warn("usuario com ID {} não encontrada.", id);
-            meterRegistry.counter("usuario.deletar.naoEncontrada").increment(); // Métrica para falha
-        }
-        
-        long endTime = System.currentTimeMillis();
-		meterRegistry.timer("categoria.deletar.tempo").record(endTime - startTime, java.util.concurrent.TimeUnit.MILLISECONDS);
-		
-    }
-}
+	        long start = System.currentTimeMillis();
+
+	        Optional<Usuario> existente = repositoriUsuario.findByNome(usuario.getNome());
+	        if (existente.isPresent()) {
+	            logger.warn("Usuário com nome '{}' já existe. Abortando criação.", usuario.getNome());
+	            meterRegistry.counter("usuario.criar.duplicado").increment();
+	            return Optional.empty();
+	        }
+
+	        usuario.setDataCadastro(LocalDate.now());
+	        Usuario salvo = repositoriUsuario.save(usuario);
+	        meterRegistry.counter("usuario.criar.sucesso").increment();
+	        logger.info("Usuário criado com sucesso: {}", salvo);
+
+	        try {
+	            streamBridge.send("usuarioEventos-out-0", salvo);
+	            logger.info("Evento de criação enviado com sucesso via StreamBridge.");
+	        } catch (Exception e) {
+	            logger.error("Erro ao enviar evento de criação via StreamBridge: {}", e.getMessage());
+	            meterRegistry.counter("usuario.criar.evento.falha").increment();
+	        }
+
+	        long end = System.currentTimeMillis();
+	        meterRegistry.timer("usuario.criar.tempo").record(end - start, TimeUnit.MILLISECONDS);
+
+	        return Optional.of(salvo);
+	    }
+
+	    public Optional<Usuario> buscarUsuarioPorId(Long id) {
+	        logger.info("Recebida requisição para buscar usuário com ID: {}", id);
+	        meterRegistry.counter("usuario.buscar.id.chamadas").increment();
+
+	        long start = System.currentTimeMillis();
+	        Optional<Usuario> usuario = repositoriUsuario.findById(id);
+	        long end = System.currentTimeMillis();
+	        meterRegistry.timer("usuario.buscar.id.tempo").record(end - start, TimeUnit.MILLISECONDS);
+
+	        if (usuario.isPresent()) {
+	            logger.info("Usuário encontrado: {}", usuario.get());
+	            meterRegistry.counter("usuario.buscar.id.sucesso").increment();
+	        } else {
+	            logger.warn("Usuário com ID {} não encontrado.", id);
+	            meterRegistry.counter("usuario.buscar.id.naoencontrado").increment();
+	        }
+
+	        return usuario;
+	    }
+
+	    public boolean deletarUsuario(Long id) {
+	        logger.info("Recebida requisição para deletar usuário com ID: {}", id);
+	        meterRegistry.counter("usuario.deletar.chamadas").increment();
+
+	        long start = System.currentTimeMillis();
+
+	        Optional<Usuario> usuarioExistente = repositoriUsuario.findById(id);
+	        if (usuarioExistente.isPresent()) {
+	            repositoriUsuario.deleteById(id);
+	            logger.info("Usuário com ID {} deletado com sucesso.", id);
+	            meterRegistry.counter("usuario.deletar.sucesso").increment();
+	            meterRegistry.timer("usuario.deletar.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+	            return true;
+	        } else {
+	            logger.warn("Usuário com ID {} não encontrado para exclusão.", id);
+	            meterRegistry.counter("usuario.deletar.naoencontrado").increment();
+	            meterRegistry.timer("usuario.deletar.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+	            return false;
+	        }
+	    }
+	}

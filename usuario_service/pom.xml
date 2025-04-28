@@ -11,6 +11,7 @@
 
     <artifactId>usuario_service</artifactId>
     <name>Usuário Service</name>
+    <packaging>war</packaging>
 
     <dependencies>
          <dependency>
@@ -68,9 +69,16 @@
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-stream-rabbit</artifactId>
 </dependency>
-
-
-
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-tomcat</artifactId>
+    <scope>provided</scope>
+</dependency>
+<dependency>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+  <version>2.7.0</version>
+</dependency>
     </dependencies>
     <build>
         <plugins>

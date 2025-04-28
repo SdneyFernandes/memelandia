@@ -11,6 +11,6 @@ import br.com.memelandia.entities.Usuario;
  */
 
 public interface RepositoriUsuario extends JpaRepository<Usuario, Long> {
-	Optional<Usuario> findByName(String name);
+	Optional<Usuario> findByNome(String nome);
 
 }
