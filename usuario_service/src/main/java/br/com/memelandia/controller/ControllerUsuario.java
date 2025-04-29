@@ -43,18 +43,38 @@ public class ControllerUsuario {
                         .body("Usuário com este nome já existe."));
     }
 
-    @Operation(summary = "Buscar", description = "Método para buscar um usuário por ID")
+    @Operation(summary = "Buscar Por Id", description = "Método para buscar um usuário por ID")
     @GetMapping("/{id}")
     public ResponseEntity<Usuario> buscarUsuarioPorId(@PathVariable Long id) {
         return serviceUsuario.buscarUsuarioPorId(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
+    
+    @Operation(summary = "Buscar Por Nome", description = "Método para buscar um usuário por Nome")
+    @GetMapping("/nome/{nome}")
+    public ResponseEntity<Usuario> buscarUsuarioPorNome(@PathVariable String nome) {
+        return serviceUsuario.buscarUsuarioPorNome(nome)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
 
-    @Operation(summary = "Deletar", description = "Método para deletar um usuário por ID")
+    @Operation(summary = "Deletar Por Id", description = "Método para deletar um usuário por ID")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deletarUsuario(@PathVariable Long id) {
-        boolean removido = serviceUsuario.deletarUsuario(id);
+    public ResponseEntity<?> deletarUsuarioPorId(@PathVariable Long id) {
+        boolean removido = serviceUsuario.deletarUsuarioPorId(id);
+        if (removido) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Usuário não encontrado para exclusão.");
+        }
+    }
+    
+    @Operation(summary = "Deletar Por Nome", description = "Método para deletar um usuário por Nome")
+    @DeleteMapping("/nome/{nome}")
+    public ResponseEntity<?> deletarUsuarioPorNome(@PathVariable String nome) {
+        boolean removido = serviceUsuario.deletarUsuarioPorNome(nome);
         if (removido) {
             return ResponseEntity.noContent().build();
         } else {

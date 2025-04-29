@@ -108,10 +108,31 @@ public class ServiceCategoria {
 
         return categoria;
     }
+    
+    
+    public Optional<Categoria> buscarCategoriaPorNome(String name) {
+        logger.info("Recebida requisição para buscar categoria com Nome: {}", name);
+        meterRegistry.counter("categoria.buscar.nome.chamadas").increment();
 
-    public boolean deletarCategoria(Long id) {
+        long start = System.currentTimeMillis();
+        Optional<Categoria> categoria = repositoriCategoria.findByName(name);
+        long end = System.currentTimeMillis();
+        meterRegistry.timer("categoria.buscar.nome.tempo").record(end - start, TimeUnit.MILLISECONDS);
+
+        if (categoria.isPresent()) {
+            logger.info("Categoria encontrada: {}", categoria.get());
+            meterRegistry.counter("categoria.buscar.nome.sucesso").increment();
+        } else {
+            logger.warn("Categoria com nome {} não encontrada.", name);
+            meterRegistry.counter("categoria.buscar.nome.naoencontrada").increment();
+        }
+
+        return categoria;
+    }
+
+    public boolean deletarCategoriaPorId(Long id) {
         logger.info("Recebida requisição para deletar categoria com ID: {}", id);
-        meterRegistry.counter("categoria.deletar.chamadas").increment();
+        meterRegistry.counter("categoria.deletar.Id.chamadas").increment();
 
         long start = System.currentTimeMillis();
 
@@ -119,13 +140,34 @@ public class ServiceCategoria {
         if (categoriaExistente.isPresent()) {
             repositoriCategoria.deleteById(id);
             logger.info("Categoria com ID {} deletada com sucesso.", id);
-            meterRegistry.counter("categoria.deletar.sucesso").increment();
-            meterRegistry.timer("categoria.deletar.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+            meterRegistry.counter("categoria.deletar.id.sucesso").increment();
+            meterRegistry.timer("categoria.deletar.id.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
             return true;
         } else {
             logger.warn("Categoria com ID {} não encontrada para exclusão.", id);
-            meterRegistry.counter("categoria.deletar.naoencontrada").increment();
-            meterRegistry.timer("categoria.deletar.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+            meterRegistry.counter("categoria.deletar.id.naoencontrada").increment();
+            meterRegistry.timer("categoria.deletar.id.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+            return false;
+        }
+    }
+    
+    public boolean deletarCategoriaPorNome(String name) {
+        logger.info("Recebida requisição para deletar categoria com nome: {}", name);
+        meterRegistry.counter("categoria.deletar.nome.chamadas").increment();
+
+        long start = System.currentTimeMillis();
+
+        Optional<Categoria> categoriaExistente = repositoriCategoria.findByName(name);
+        if (categoriaExistente.isPresent()) {
+        	 repositoriCategoria.delete(categoriaExistente.get());
+            logger.info("Categoria com nome {} deletada com sucesso.", name);
+            meterRegistry.counter("categoria.deletar.nome.sucesso").increment();
+            meterRegistry.timer("categoria.deletar.nome.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+            return true;
+        } else {
+            logger.warn("Categoria com nome {} não encontrada para exclusão.", name);
+            meterRegistry.counter("categoria.deletar.nome.naoencontrada").increment();
+            meterRegistry.timer("categoria.deletar.nome.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
             return false;
         }
     }

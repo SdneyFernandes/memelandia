@@ -107,10 +107,30 @@ public class ServiceUsuario {
 
 	        return usuario;
 	    }
+	    
+	    public Optional<Usuario> buscarUsuarioPorNome(String nome) {
+	        logger.info("Recebida requisição para buscar usuário com Nome: {}", nome);
+	        meterRegistry.counter("usuario.buscar.nome.chamadas").increment();
 
-	    public boolean deletarUsuario(Long id) {
+	        long start = System.currentTimeMillis();
+	        Optional<Usuario> usuario = repositoriUsuario.findByNome(nome);
+	        long end = System.currentTimeMillis();
+	        meterRegistry.timer("usuario.buscar.nome.tempo").record(end - start, TimeUnit.MILLISECONDS);
+
+	        if (usuario.isPresent()) {
+	            logger.info("Usuário encontrado: {}", usuario.get());
+	            meterRegistry.counter("usuario.buscar.nome.sucesso").increment();
+	        } else {
+	            logger.warn("Usuário com nome {} não encontrado.", nome);
+	            meterRegistry.counter("usuario.buscar.nome.naoencontrado").increment();
+	        }
+
+	        return usuario;
+	    }
+
+	    public boolean deletarUsuarioPorId(Long id) {
 	        logger.info("Recebida requisição para deletar usuário com ID: {}", id);
-	        meterRegistry.counter("usuario.deletar.chamadas").increment();
+	        meterRegistry.counter("usuario.deletar.id.chamadas").increment();
 
 	        long start = System.currentTimeMillis();
 
@@ -118,14 +138,37 @@ public class ServiceUsuario {
 	        if (usuarioExistente.isPresent()) {
 	            repositoriUsuario.deleteById(id);
 	            logger.info("Usuário com ID {} deletado com sucesso.", id);
-	            meterRegistry.counter("usuario.deletar.sucesso").increment();
-	            meterRegistry.timer("usuario.deletar.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+	            meterRegistry.counter("usuario.deletar.id.sucesso").increment();
+	            meterRegistry.timer("usuario.deletar.id.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
 	            return true;
 	        } else {
 	            logger.warn("Usuário com ID {} não encontrado para exclusão.", id);
-	            meterRegistry.counter("usuario.deletar.naoencontrado").increment();
-	            meterRegistry.timer("usuario.deletar.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+	            meterRegistry.counter("usuario.deletar.id.naoencontrado").increment();
+	            meterRegistry.timer("usuario.deletar.id.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
 	            return false;
 	        }
 	    }
-	}
+	    
+	    public boolean deletarUsuarioPorNome(String nome) {
+	        logger.info("Recebida requisição para deletar usuário com nome: {}", nome);
+	        meterRegistry.counter("usuario.deletar.nome.chamadas").increment();
+
+	        long start = System.currentTimeMillis();
+
+	        Optional<Usuario> usuarioExistente = repositoriUsuario.findByNome(nome);
+	        if (usuarioExistente.isPresent()) {
+	            repositoriUsuario.delete(usuarioExistente.get());
+	            logger.info("Usuário com nome {} deletado com sucesso.", nome);
+	            meterRegistry.counter("usuario.deletar.nome.sucesso").increment();
+	        } else {
+	            logger.warn("Usuário com nome {} não encontrado para exclusão.", nome);
+	            meterRegistry.counter("usuario.deletar.nome.naoencontrado").increment();
+	            meterRegistry.timer("usuario.deletar.nome.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+	            return false;
+	        }
+
+	        meterRegistry.timer("usuario.deletar.nome.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+	        return true;
+	    }
+
+	    }

@@ -1,152 +1,183 @@
 package br.com.memelandia.service;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Service;
-
 import br.com.memelandia.entities.Categoria;
 import br.com.memelandia.entities.Meme;
 import br.com.memelandia.entities.Usuario;
-import br.com.memelandia.repositori.RepositoriMeme;
 import br.com.memelandia.repositori.RepositoriCategoria;
+import br.com.memelandia.repositori.RepositoriMeme;
 import br.com.memelandia.repositori.RepositoriUsuario;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.function.Consumer;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.time.LocalDate;
+
+
 
 /**
  * @author fsdney
  */
+
+
 @Service
 public class ServiceMeme {
 
-    private final Logger logger = LoggerFactory.getLogger(ServiceMeme.class);
+    private static final Logger logger = LoggerFactory.getLogger(ServiceMeme.class);
 
-    @Autowired
-    private MeterRegistry meterRegistry; // Registro de métricas
+    private final MeterRegistry meterRegistry;
+    private final RepositoriMeme repositoriMeme;
+    private final RestTemplate restTemplate;
 
-    @Autowired
-    private RepositoriMeme repositoriMeme;
+    private static final String URL_USUARIO_SERVICE = "http://localhost:8080/usuario_service/";
+    private static final String URL_CATEGORIA_SERVICE = "http://localhost:8081/categoria_service/";
 
-    @Autowired
-    private RepositoriCategoria repositoriCategoria;
-
-    @Autowired
-    private RepositoriUsuario repositoriUsuario;
-
-    public ServiceMeme(RepositoriUsuario repositoriUsuario, RepositoriCategoria repositoriCategoria) {
-        this.repositoriUsuario = repositoriUsuario;
-        this.repositoriCategoria = repositoriCategoria;
+    public ServiceMeme(MeterRegistry meterRegistry, RepositoriMeme repositoriMeme) {
+        this.meterRegistry = meterRegistry;
+        this.repositoriMeme = repositoriMeme;
+        this.restTemplate = new RestTemplate();
     }
 
     public List<Meme> listarTodosMemes() {
         logger.info("Recebida requisição para listar todos os memes.");
-        
         meterRegistry.counter("meme.listar.todas.chamadas").increment();
-        long startTime = System.currentTimeMillis();
-        List<Meme> memes = repositoriMeme.findAll();
-        long endTime = System.currentTimeMillis();
 
-        meterRegistry.timer("meme.listar.todas.tempo").record(endTime - startTime, TimeUnit.MILLISECONDS);
+        long start = System.currentTimeMillis();
+        List<Meme> memes = repositoriMeme.findAll();
+        meterRegistry.timer("meme.listar.todas.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
 
         if (memes.isEmpty()) {
-            logger.warn("A lista está vazia.");
+            logger.warn("A lista de memes está vazia.");
             meterRegistry.counter("meme.listar.todas.vazio").increment();
         } else {
             logger.info("Total de memes encontrados: {}", memes.size());
             meterRegistry.counter("meme.listar.todas.sucesso").increment();
-            meterRegistry.gauge("meme.listar.todas.tamanho", memes, List::size);
+            meterRegistry.gauge("meme.listar.todas.quantidade", memes, List::size);
         }
+
         return memes;
     }
 
-    public Meme criarMeme(Meme meme) {
-        logger.info("Recebida requisição para criar um meme.");
+    public Optional<Meme> criarMeme(Meme meme) {
+        logger.info("Recebida requisição para criar um novo meme.");
         meterRegistry.counter("meme.criar.chamadas").increment();
-        long startTime = System.currentTimeMillis();
 
-        Optional<Categoria> categoria = repositoriCategoria.findById(meme.getCategoria().getId());
-        if (categoria.isEmpty()) {
-            logger.warn("Categoria não encontrada.");
-            throw new RuntimeException("Categoria não encontrada.");
+        long start = System.currentTimeMillis();
+
+        try {
+            restTemplate.getForObject(URL_CATEGORIA_SERVICE + "nome/" + meme.getCategoriaName(), Object.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            logger.warn("Categoria '{}' não encontrada.", meme.getCategoriaName());
+            meterRegistry.counter("meme.criar.categoria.naoencontrada").increment();
+            throw new RuntimeException("Categoria não encontrada: " + meme.getCategoriaName());
         }
 
-        Optional<Usuario> usuario = repositoriUsuario.findById(meme.getUsuario().getId());
-        if (usuario.isEmpty()) {
-            logger.warn("Usuário não encontrado.");
-            throw new RuntimeException("Usuário não encontrado.");
+        try {
+            restTemplate.getForObject(URL_USUARIO_SERVICE + "nome/" + meme.getUsuarioName(), Object.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            logger.warn("Usuário '{}' não encontrado.", meme.getUsuarioName());
+            meterRegistry.counter("meme.criar.usuario.naoencontrado").increment();
+            throw new RuntimeException("Usuário não encontrado: " + meme.getUsuarioName());
         }
 
-        meme.setDataCadastro(new java.sql.Date(System.currentTimeMillis()));
+        meme.setDataCadastro(LocalDate.now());
         Meme salvo = repositoriMeme.save(meme);
 
         logger.info("Meme criado com sucesso: {}", salvo);
         meterRegistry.counter("meme.criar.sucesso").increment();
-        long endTime = System.currentTimeMillis();
-        meterRegistry.timer("meme.criar.tempo").record(endTime - startTime, TimeUnit.MILLISECONDS);
-        return salvo;
+        meterRegistry.timer("meme.criar.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+
+        return Optional.of(salvo);
     }
+
+
 
     public Optional<Meme> buscarMemePorId(Long id) {
         logger.info("Recebida requisição para buscar meme com ID: {}", id);
-        meterRegistry.counter("meme.buscarPorID.chamadas").increment();
-        long startTime = System.currentTimeMillis();
+        meterRegistry.counter("meme.buscar.id.chamadas").increment();
 
+        long start = System.currentTimeMillis();
         Optional<Meme> meme = repositoriMeme.findById(id);
-
-        long endTime = System.currentTimeMillis();
-        meterRegistry.timer("meme.buscarPorID.tempo").record(endTime - startTime, TimeUnit.MILLISECONDS);
+        meterRegistry.timer("meme.buscar.id.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
 
         if (meme.isPresent()) {
             logger.info("Meme encontrado: {}", meme.get());
-            meterRegistry.counter("meme.buscarPorID.sucesso").increment();
+            meterRegistry.counter("meme.buscar.id.sucesso").increment();
         } else {
             logger.warn("Meme com ID {} não encontrado.", id);
-            meterRegistry.counter("meme.buscarPorID.naoEncontrada").increment();
+            meterRegistry.counter("meme.buscar.id.naoencontrada").increment();
         }
+
         return meme;
     }
+    
+    public Optional<Meme> buscarMemePorNome(String name) {
+        logger.info("Recebida requisição para buscar meme com nome: {}", name);
+        meterRegistry.counter("meme.buscar.nome.chamadas").increment();
 
-    public void deletarMeme(Long id) {
+        long start = System.currentTimeMillis();
+        Optional<Meme> meme = repositoriMeme.findByName(name);
+        meterRegistry.timer("meme.buscar.nome.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+
+        if (meme.isPresent()) {
+            logger.info("Meme encontrado: {}", meme.get());
+            meterRegistry.counter("meme.buscar.nome.sucesso").increment();
+        } else {
+            logger.warn("Meme com nome {} não encontrado.", name);
+            meterRegistry.counter("meme.buscar.nome.naoencontrada").increment();
+        }
+
+        return meme;
+    }
+    
+
+    public boolean deletarMemePorId(Long id) {
         logger.info("Recebida requisição para deletar meme com ID: {}", id);
-        meterRegistry.counter("meme.deletar.chamadas").increment();
-        long startTime = System.currentTimeMillis();
+        meterRegistry.counter("meme.deletar.id.chamadas").increment();
+
+        long start = System.currentTimeMillis();
 
         Optional<Meme> memeExistente = repositoriMeme.findById(id);
         if (memeExistente.isPresent()) {
             repositoriMeme.deleteById(id);
             logger.info("Meme com ID {} deletado com sucesso.", id);
-            meterRegistry.counter("meme.deletar.sucesso").increment();
+            meterRegistry.counter("meme.deletar.id.sucesso").increment();
+            meterRegistry.timer("meme.deletar.id.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+            return true;
         } else {
             logger.warn("Meme com ID {} não encontrado.", id);
-            meterRegistry.counter("meme.deletar.naoEncontrada").increment();
+            meterRegistry.counter("meme.deletar.id.naoencontrada").increment();
+            meterRegistry.timer("meme.deletar.id.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+            return false;
         }
+    }
+    
+    public boolean deletarMemePorNome(String name) {
+        logger.info("Recebida requisição para deletar meme com nome: {}", name);
+        meterRegistry.counter("meme.deletar.nome.chamadas").increment();
 
-        long endTime = System.currentTimeMillis();
-        meterRegistry.timer("meme.deletar.tempo").record(endTime - startTime, TimeUnit.MILLISECONDS);
+        long start = System.currentTimeMillis();
+
+        Optional<Meme> memeExistente = repositoriMeme.findByName(name);
+        if (memeExistente.isPresent()) {
+       	    repositoriMeme.delete(memeExistente.get());
+            logger.info("Meme com nome {} deletado com sucesso.", name);
+            meterRegistry.counter("meme.deletar.nome.sucesso").increment();
+            meterRegistry.timer("meme.deletar.nome.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+            return true;
+        } else {
+            logger.warn("Meme com nome {} não encontrado.", name);
+            meterRegistry.counter("meme.deletar.nome.naoencontrada").increment();
+            meterRegistry.timer("meme.deletar.nome.tempo").record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+            return false;
+        }
     }
 
-    @Bean
-    public Consumer<Usuario> usuarioConsumer() {
-        return usuario -> {
-            repositoriUsuario.save(usuario);
-            logger.info("Usuário sincronizado com sucesso: {}", usuario);
-        };
-    }
-
-    @Bean
-    public Consumer<Categoria> categoriaConsumer() {
-        return categoria -> {
-            repositoriCategoria.save(categoria);
-            logger.info("Categoria sincronizada com sucesso: {}", categoria);
-        };
-    }
 
     public Meme obterMemeDoDia() {
         logger.info("Selecionando meme do dia.");

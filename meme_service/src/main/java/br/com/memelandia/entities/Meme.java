@@ -1,48 +1,56 @@
 package br.com.memelandia.entities;
 
 import jakarta.persistence.*;
-import java.sql.Date;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok. *;
 
-import br.com.memelandia.entities.Categoria; 
-import br.com.memelandia.entities.Usuario;  
+import java.time.LocalDate;
+
+
+
+/**
+ * 
+ * Representa um meme do sistema.
+ * Armazena informações de descrição e data de cadastro.
+ * 
+ * @author fsdney
+ */
+
 
 @Entity
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "meme")
 public class Meme {
-	
-	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sequence_meme")
-	@SequenceGenerator(name = "sequence_meme", sequenceName = "meme_seq", allocationSize = 1)
-	@Column(name = "id", nullable = false)
-	private Long id;
-	
-	@NotBlank(message = "Nome do meme é obrigatorio")
-	@Column( name = "name", nullable = false)
-	private String name;
-	
-	@NotBlank(message = "Descrição do meme é obrigatia")
-	@Column(name ="description", nullable = false)
-	private String description;
-	
-	@NotBlank(message = "URL do meme é obrigatoria")
-	@Column(name ="URL", nullable = false)
-	private String url;
-	
-	@Column(name = "data_Cadastro", nullable = false)
-	private Date dataCadastro;
-	
-	@ManyToOne(optional = false)
-    @JoinColumn(name = "categoria_id", nullable = false)
-    @NotNull(message = "Categoria é obrigatória")
-    private Categoria categoria;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "usuario_id", nullable = false)
-    @NotNull(message = "Usuário é obrigatório")
-    private Usuario usuario;
-	
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sequence_meme")
+    @SequenceGenerator(name = "sequence_meme", sequenceName = "meme_seq", allocationSize = 1)
+    @Column(name = "id", nullable = false)
+    private Long id;
+
+    @NotBlank(message = "Nome do meme é obrigatório")
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @NotBlank(message = "Descrição do meme é obrigatória")
+    @Column(name = "description", nullable = false)
+    private String description;
+
+    @NotBlank(message = "URL do meme é obrigatória")
+    @Column(name = "url", nullable = false)
+    private String url;
+
+    @Column(name = "data_cadastro", nullable = false)
+    private LocalDate dataCadastro;
+
+    @NotBlank(message = "Nome da categoria é obrigatório")
+    @Column(name = "categoria_name", nullable = false)
+    private String categoriaName;
+
+    @NotBlank(message = "Nome do usuário é obrigatório")
+    @Column(name = "usuario_name", nullable = false)
+    private String usuarioName;
 
 }

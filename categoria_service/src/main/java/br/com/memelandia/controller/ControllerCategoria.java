@@ -44,18 +44,39 @@ public class ControllerCategoria {
                         .body("Categoria com este nome já existe."));
     }
 
-    @Operation(summary = "Buscar", description = "Método para buscar uma categoria pelo ID")
+    @Operation(summary = "Buscar Por Id ", description = "Método para buscar uma categoria pelo ID")
     @GetMapping("/{id}")
     public ResponseEntity<Categoria> buscarCategoriaPorId(@PathVariable Long id) {
         return serviceCategoria.buscarCategoriaPorID(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
+    
+    @Operation(summary = "Buscar Por Nome ", description = "Método para buscar uma categoria pelo Nome")
+    @GetMapping("/nome/{nome}")
+    public ResponseEntity<Categoria> buscarCategoriaPorNome(@PathVariable String nome) {
+        return serviceCategoria.buscarCategoriaPorNome(nome)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
 
-    @Operation(summary = "Deletar", description = "Método para deletar uma categoria pelo ID")
+
+    @Operation(summary = "Deletar Por Id", description = "Método para deletar uma categoria pelo ID")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deletarCategoria(@PathVariable Long id) {
-        boolean removida = serviceCategoria.deletarCategoria(id);
+    public ResponseEntity<?> deletarCategoriaPorId(@PathVariable Long id) {
+        boolean removida = serviceCategoria.deletarCategoriaPorId(id);
+        if (removida) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Categoria não encontrada para exclusão.");
+        }
+    }
+    
+    @Operation(summary = "Deletar Por Nome", description = "Método para deletar uma categoria pelo Nome")
+    @DeleteMapping("/nome/{nome}")
+    public ResponseEntity<?> deletarCategoriaPorNome(@PathVariable String nome) {
+        boolean removida = serviceCategoria.deletarCategoriaPorNome(nome);
         if (removida) {
             return ResponseEntity.noContent().build();
         } else {
