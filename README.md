@@ -1,12 +1,16 @@
 # 📚 Projeto Memelandia - Sistema de Microsserviços
 
-Este projeto é uma arquitetura de microsserviços em Spring Boot para gestão de memes, usuários e categorias.
+Este projeto é uma arquitetura de microsserviços em Spring Boot para gestão de memes, usuários e categorias, utilizando Docker para orquestração dos serviços.
 
 ## 🏗 Estrutura dos Microsserviços
 
 - **usuario_service** — Gerencia usuários (cadastro, busca, exclusão).
 - **categoria_service** — Gerencia categorias (cadastro, busca, exclusão).
 - **meme_service** — Gerencia memes (criação, consulta, remoção), integrando usuários e categorias via chamadas REST.
+- **eureka_server** — Service Discovery para registro e localização dos microsserviços.
+- **rabbitmq** — Mensageria para comunicação assíncrona.
+- **zipkin** — Tracing distribuído para monitoramento das requisições.
+- **prometheus** - Metricas para monitoramento de chamadas.
 
 ---
 
@@ -22,6 +26,7 @@ Este projeto é uma arquitetura de microsserviços em Spring Boot para gestão d
 - Micrometer + Prometheus (Métricas)
 - Zipkin (Tracing distribuido )
 - RabbitMQ (Mensageria + eventos)
+- Docker & Docker Compose
 
 ---
 
@@ -30,17 +35,15 @@ Este projeto é uma arquitetura de microsserviços em Spring Boot para gestão d
 ### 1. Pré-requisitos
 - Java 21+
 - Maven 3.8+
+- Docker instalado
+- Docker Compose instalado
 
 ### 2. Subir os Microsserviços
 
-Execute os projetos na seguinte ordem:
+Execute no diretório raiz do projeto:
+docker-compose up --build
 
-1. **Eureka Server** (`localhost:8761`)
-2. **usuario_service** (`localhost:8080`)
-3. **categoria_service** (`localhost:8081`)
-4. **meme_service** (`localhost:8082`)
-
-> Cada serviço pode ser executado via `mvn spring-boot:run`.
+🐳 Isso irá subir todos os serviços, incluindo Prometheus, Eureka, RabbitMQ, Zipkin e os microsserviços.
 
 ---
 
@@ -78,6 +81,9 @@ Execute os projetos na seguinte ordem:
 - Ao criar um novo **Meme**, o serviço verifica se o **Usuário** e a **Categoria** existem através de chamadas REST para os respectivos microsserviços.
 - Todos os dados são armazenados em bancos de dados H2 em memória.
 - Métricas são expostas no `/actuator/metrics` para cada serviço.
+- Os serviços se registram automaticamente no Eureka Server.
+- Comunicação de eventos via RabbitMQ.
+- Monitoramento de requisições distribuídas via Zipkin.
 
 ---
 
@@ -87,6 +93,18 @@ Swagger UI disponível em cada microsserviço:
 - `http://localhost:8080/swagger-ui.html` (Usuários)
 - `http://localhost:8081/swagger-ui.html` (Categorias)
 - `http://localhost:8082/swagger-ui.html` (Memes)
+
+## 🌐 Acessos Rápidos
+
+Serviço -	URL
+
+Eureka Server	http://localhost:8761
+Usuario Service	http://localhost:8080
+Categoria Service	http://localhost:8081
+Meme Service	http://localhost:8082
+RabbitMQ	http://localhost:15672 (Login: guest / guest)
+Zipkin	http://localhost:9411
+Prometheus http://localhost:9090
 
 ---
 
