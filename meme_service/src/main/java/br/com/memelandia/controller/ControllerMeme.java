@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import br.com.memelandia.entities.Meme;
 import br.com.memelandia.service.ServiceMeme;
+import br.com.memelandia.dto.MemeDTO;
 
 /**
  * @author fsdney
@@ -36,8 +37,8 @@ public class ControllerMeme {
 
     @Operation(summary = "Criar", description = "Criar um novo meme")
     @PostMapping
-    public ResponseEntity<Meme> criarMeme(@RequestBody Meme meme) {
-        Meme novoMeme = serviceMeme.criarMeme(meme).orElseThrow(() -> new RuntimeException("Erro ao criar meme."));
+    public ResponseEntity<Meme> criarMeme(@RequestBody MemeDTO dto) {
+        Meme novoMeme = serviceMeme.criarMeme(dto).orElseThrow(() -> new RuntimeException("Erro ao criar meme."));
         return ResponseEntity.status(HttpStatus.CREATED).body(novoMeme);
     }
 

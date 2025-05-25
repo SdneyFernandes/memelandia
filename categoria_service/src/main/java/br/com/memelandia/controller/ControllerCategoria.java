@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import br.com.memelandia.entities.Categoria;
 import br.com.memelandia.service.ServiceCategoria;
+import br.com.memelandia.dto.CategoriaDTO;
 
 /**
  * @author fsdney
@@ -37,8 +38,8 @@ public class ControllerCategoria {
 
     @Operation(summary = "Criar", description = "Método para criar uma nova categoria")
     @PostMapping
-    public ResponseEntity<?> criarCategoria(@RequestBody Categoria categoria) {
-        return serviceCategoria.criarCategoria(categoria)
+    public ResponseEntity<?> criarCategoria(@RequestBody CategoriaDTO dto) {
+        return serviceCategoria.criarCategoria(dto)
                 .<ResponseEntity<?>>map(novaCategoria -> ResponseEntity.status(HttpStatus.CREATED).body(novaCategoria))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.CONFLICT)
                         .body("Categoria com este nome já existe."));

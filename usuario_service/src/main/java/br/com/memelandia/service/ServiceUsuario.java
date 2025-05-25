@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import br.com.memelandia.entities.Usuario;
 import br.com.memelandia.repositori.RepositoriUsuario;
+import br.com.memelandia.dto.UsuarioDTO;
 import io.micrometer.core.instrument.*;
 
 import org.springframework.cloud.stream.function.StreamBridge;
@@ -56,21 +57,26 @@ public class ServiceUsuario {
 	        return usuarios;
 	    }
 
-	    public Optional<Usuario> criarUsuario(Usuario usuario) {
-	        logger.info("Recebida requisição para criar novo usuário: {}", usuario);
+	    public Optional<Usuario> criarUsuario(UsuarioDTO dto) {
+	        logger.info("Recebida requisição para criar novo usuário: {}", dto);
 	        meterRegistry.counter("usuario.criar.chamadas").increment();
 
 	        long start = System.currentTimeMillis();
 
-	        Optional<Usuario> existente = repositoriUsuario.findByNome(usuario.getNome());
+	        Optional<Usuario> existente = repositoriUsuario.findByNome(dto.getNome());
 	        if (existente.isPresent()) {
-	            logger.warn("Usuário com nome '{}' já existe. Abortando criação.", usuario.getNome());
+	            logger.warn("Usuário com nome '{}' já existe. Abortando criação.", dto.getNome());
 	            meterRegistry.counter("usuario.criar.duplicado").increment();
 	            return Optional.empty();
 	        }
-
+	        
+	        Usuario usuario = new Usuario();
+	        usuario.setNome(dto.getNome());
+	        usuario.setEmail(dto.getEmail());
 	        usuario.setDataCadastro(LocalDate.now());
 	        Usuario salvo = repositoriUsuario.save(usuario);
+	        
+	        
 	        meterRegistry.counter("usuario.criar.sucesso").increment();
 	        logger.info("Usuário criado com sucesso: {}", salvo);
 
@@ -87,6 +93,8 @@ public class ServiceUsuario {
 
 	        return Optional.of(salvo);
 	    }
+
+
 
 	    public Optional<Usuario> buscarUsuarioPorId(Long id) {
 	        logger.info("Recebida requisição para buscar usuário com ID: {}", id);

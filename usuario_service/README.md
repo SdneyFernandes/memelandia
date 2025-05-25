@@ -14,7 +14,6 @@ Este microserviço é responsável pelo cadastro e gerenciamento de usuários no
 * H2 Database (Desenvolvimento)
 * Micrometer + Prometheus (Métricas)
 * Zipkin (Tracing)
-* Docker
 
 ## 🛠️ Como Rodar o Projeto
 
@@ -37,46 +36,20 @@ Este microserviço é responsável pelo cadastro e gerenciamento de usuários no
    * API Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
    * H2 Database Console: [http://localhost:8080/h2-console](http://localhost:8080/h2-console)
 
-> 🔸 **Observação:** Para integração de eventos, é necessário que um servidor RabbitMQ esteja rodando na porta `5672`.
-
----
-
-### ✔️ Rodando com Docker (Individual)
-
-1. Gere a imagem Docker:
-
-   ```bash
-   docker build -t usuario-service .
-   ```
-2. Execute o container:
-
-   ```bash
-   docker run -p 8080:8080 usuario-service
-   ```
-
-> 🔸 **Importante:** Para funcionamento completo, serviços como RabbitMQ, Eureka, Prometheus e Zipkin devem estar rodando. Recomenda-se utilizar o `docker-compose.yml` na raiz do projeto.
-
----
-
-### ✔️ Rodando com Docker Compose (Recomendado)
-
-1. Na raiz do projeto (`memelandia`), execute:
-
-   ```bash
-   docker-compose up --build
-   ```
-2. O `docker-compose.yml` orquestra todos os microsserviços e dependências (RabbitMQ, Eureka, Prometheus, Zipkin, etc.).
+> 🔸 **Importante:** Este serviço espera que serviços como RabbitMQ e Eureka estejam ativos. 
 
 ---
 
 ## 📂 Endpoints da API
 
-| Método | Endpoint               | Descrição               |
-| ------ | ---------------------- | ----------------------- |
-| GET    | /usuario\_service      | Lista todos os usuários |
-| POST   | /usuario\_service      | Cria um novo usuário    |
-| GET    | /usuario\_service/{id} | Busca usuário por ID    |
-| DELETE | /usuario\_service/{id} | Deleta usuário por ID   |
+| Método | Endpoint                      | Descrição               |
+| ------ | ----------------------        | ----------------------- |
+| GET    | /usuario\_service             | Lista todos os usuários |
+| POST   | /usuario\_service             | Cria um novo usuário    |
+| GET    | /usuario\_service/{id}        | Busca usuário por ID    |
+| GET    | /usuario\_service/nome/{nome} | Busca usuário por Nome  |
+| DELETE | /usuario\_service/{id}        | Deleta usuário por ID   |
+| DELETE | /usuario\_service/nome/{nome} | Deleta usuário por Nome |
 
 ---
 
@@ -87,6 +60,7 @@ src/main/java/
   br/com/memelandia/config/        # Configurações (Swagger, etc.)
   br/com/memelandia/controller/    # Controllers REST
   br/com/memelandia/entities/      # Entidades JPA
+  br/com/memelandia/dto/           # DTO
   br/com/memelandia/service/       # Regras de Negócio
   br/com/memelandia/repository/    # Repositórios (Spring Data JPA)
 ```
@@ -96,7 +70,7 @@ src/main/java/
 ## 💪 Melhorias Futuras
 
 * ✅ Implementação de camada DTOs para payloads
-* ✅ Dockerfile implementado
+* ⏳ Dockerfile implementado
 * ⏳ Testes unitários e de integração (JUnit5 + Mockito)
 * ⏳ Implementação de autenticação e segurança
 

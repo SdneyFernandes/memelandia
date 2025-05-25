@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import br.com.memelandia.dto.CategoriaDTO;
 import br.com.memelandia.entities.Categoria;
 import br.com.memelandia.repositori.RepositoriCategoria;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -57,19 +58,22 @@ public class ServiceCategoria {
         return categorias;
     }
 
-    public Optional<Categoria> criarCategoria(Categoria categoria) {
-        logger.info("Recebida requisição para criar nova categoria: {}", categoria);
+    public Optional<Categoria> criarCategoria(CategoriaDTO dto) {
+        logger.info("Recebida requisição para criar nova categoria: {}", dto);
         meterRegistry.counter("categoria.criar.chamadas").increment();
 
         long start = System.currentTimeMillis();
 
-        Optional<Categoria> existente = repositoriCategoria.findByName(categoria.getName());
+        Optional<Categoria> existente = repositoriCategoria.findByName(dto.getName());
         if (existente.isPresent()) {
-            logger.warn("Categoria com nome '{}' já existe.", categoria.getName());
+            logger.warn("Categoria com nome '{}' já existe.", dto.getName());
             meterRegistry.counter("categoria.criar.existente").increment();
             return Optional.empty();
         }
 
+        Categoria categoria = new Categoria();
+        categoria.setName(dto.getName());
+        categoria.setDescription(dto.getDescription());
         categoria.setDataCadastro(LocalDate.now());
         Categoria salva = repositoriCategoria.save(categoria);
         meterRegistry.counter("categoria.criar.sucesso").increment();
@@ -87,7 +91,9 @@ public class ServiceCategoria {
         meterRegistry.timer("categoria.criar.tempo").record(end - start, TimeUnit.MILLISECONDS);
 
         return Optional.of(salva);
-    }
+    }    
+    
+    
 
     public Optional<Categoria> buscarCategoriaPorID(Long id) {
         logger.info("Recebida requisição para buscar categoria com ID: {}", id);

@@ -14,7 +14,6 @@ Este microserviço é responsável pelo cadastro e gerenciamento de **categorias
 * H2 Database (Desenvolvimento)
 * Micrometer + Prometheus (Métricas)
 * Zipkin (Tracing)
-* Docker
 
 ---
 
@@ -39,37 +38,11 @@ Este microserviço é responsável pelo cadastro e gerenciamento de **categorias
    * API Swagger UI: [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
    * H2 Database Console: [http://localhost:8081/h2-console](http://localhost:8081/h2-console)
 
-> 🔸 **Observação:** Para funcionamento completo com eventos, é necessário que um servidor RabbitMQ esteja rodando na porta `5672`.
+
+> 🔸 **Importante:** Este serviço espera que serviços como RabbitMQ e Eureka estejam ativos. 
 
 ---
 
-### ✔️ Rodando com Docker (Individual)
-
-1. Gere a imagem Docker:
-
-   ```bash
-   docker build -t categoria-service .
-   ```
-2. Execute o container:
-
-   ```bash
-   docker run -p 8081:8081 categoria-service
-   ```
-
-> 🔸 **Importante:** Este container espera que serviços como RabbitMQ e Eureka estejam ativos. Recomenda-se o uso do `docker-compose.yml` na raiz do projeto para orquestração completa.
-
----
-
-### ✔️ Rodando com Docker Compose (Recomendado)
-
-1. Na raiz do projeto (`memelandia`), execute:
-
-   ```bash
-   docker-compose up --build
-   ```
-2. Isso irá subir todos os microsserviços, além de RabbitMQ, Eureka, Prometheus, Zipkin e outros serviços necessários.
-
----
 
 ## 📂 Endpoints da API
 
@@ -91,6 +64,7 @@ src/main/java/
   br/com/memelandia/config/        # Configurações (Swagger, etc.)
   br/com/memelandia/controller/    # Controllers REST
   br/com/memelandia/entities/      # Entidades JPA
+   br/com/memelandia/dto/          # DTO
   br/com/memelandia/service/       # Regras de Negócio
   br/com/memelandia/repository/    # Repositórios (Spring Data JPA)
 ```
@@ -99,7 +73,7 @@ src/main/java/
 
 ## 💪 Melhorias Futuras
 
-* ✅ Dockerfile implementado
+* ⏳ Dockerfile 
 * ✅ DTO implementado
 * ⏳ Testes unitários e de integração (JUnit5 + Mockito)
 * ⏳ Implementação de autenticação e segurança

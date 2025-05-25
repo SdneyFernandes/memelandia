@@ -18,7 +18,6 @@ O **Meme Service** depende dos microsserviços de **Usuários** e **Categorias**
 * H2 Database (Desenvolvimento)
 * Micrometer + Prometheus (Métricas)
 * Zipkin (Tracing)
-* Docker
 
 ---
 
@@ -47,34 +46,6 @@ O **Meme Service** depende dos microsserviços de **Usuários** e **Categorias**
 
 ---
 
-### ✔️ Rodando com Docker (Individual)
-
-1. Gere a imagem Docker:
-
-   ```bash
-   docker build -t meme-service .
-   ```
-2. Execute o container:
-
-   ```bash
-   docker run -p 8082:8082 meme-service
-   ```
-
-> 🔸 **Importante:** O serviço espera que RabbitMQ e os outros microsserviços estejam rodando. Recomenda-se usar `docker-compose`.
-
----
-
-### ✔️ Rodando com Docker Compose (Recomendado)
-
-1. Na raiz do projeto `memelandia`, execute:
-
-   ```bash
-   docker-compose up --build
-   ```
-2. Todos os microsserviços, juntamente com RabbitMQ, Eureka, Prometheus, Zipkin e outros, serão executados automaticamente.
-
----
-
 ## 📂 Endpoints da API
 
 | Método | Endpoint                   | Descrição                 |
@@ -96,6 +67,7 @@ src/main/java/
   br/com/memelandia/config/        # Configurações gerais (Swagger, etc)
   br/com/memelandia/controller/    # Controllers REST
   br/com/memelandia/entities/      # Entidades JPA
+  br/com/memelandia/DTO/           # DTO
   br/com/memelandia/service/       # Regras de Negócio
   br/com/memelandia/repository/    # Repositórios (Spring Data JPA)
 ```
@@ -104,7 +76,7 @@ src/main/java/
 
 ## 💪 Melhorias Futuras
 
-* ✅ Dockerfile implementado
+* ⏳ Dockerfile implementado
 * ✅ DTO implementado
 * ⏳ Implementação de testes unitários (JUnit5 + Mockito)
 * ⏳ Implementação de testes de integração

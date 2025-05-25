@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import br.com.memelandia.entities.Usuario;
 import br.com.memelandia.service.ServiceUsuario;
+import br.com.memelandia.dto.UsuarioDTO;
 
 /**
  * @author fsdney
@@ -36,8 +37,8 @@ public class ControllerUsuario {
 
     @Operation(summary = "Criar", description = "Método para criar um novo usuário")
     @PostMapping
-    public ResponseEntity<?> criarUsuario(@RequestBody Usuario usuario) {
-        return serviceUsuario.criarUsuario(usuario)
+    public ResponseEntity<?> criarUsuario(@RequestBody UsuarioDTO dto) {
+        return serviceUsuario.criarUsuario(dto)
                 .<ResponseEntity<?>>map(novoUsuario -> ResponseEntity.status(HttpStatus.CREATED).body(novoUsuario))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.CONFLICT)
                         .body("Usuário com este nome já existe."));

@@ -1,11 +1,8 @@
 package br.com.memelandia.service;
 
-import br.com.memelandia.entities.Categoria;
 import br.com.memelandia.entities.Meme;
-import br.com.memelandia.entities.Usuario;
-import br.com.memelandia.repositori.RepositoriCategoria;
 import br.com.memelandia.repositori.RepositoriMeme;
-import br.com.memelandia.repositori.RepositoriUsuario;
+import br.com.memelandia.dto.MemeDTO;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,28 +60,34 @@ public class ServiceMeme {
         return memes;
     }
 
-    public Optional<Meme> criarMeme(Meme meme) {
+    public Optional<Meme> criarMeme(MemeDTO dto) {
         logger.info("Recebida requisição para criar um novo meme.");
         meterRegistry.counter("meme.criar.chamadas").increment();
 
         long start = System.currentTimeMillis();
 
         try {
-            restTemplate.getForObject(URL_CATEGORIA_SERVICE + "nome/" + meme.getCategoriaName(), Object.class);
+            restTemplate.getForObject(URL_CATEGORIA_SERVICE + "nome/" + dto.getCategoriaName(), Object.class);
         } catch (HttpClientErrorException.NotFound e) {
-            logger.warn("Categoria '{}' não encontrada.", meme.getCategoriaName());
+            logger.warn("Categoria '{}' não encontrada.", dto.getCategoriaName());
             meterRegistry.counter("meme.criar.categoria.naoencontrada").increment();
-            throw new RuntimeException("Categoria não encontrada: " + meme.getCategoriaName());
+            throw new RuntimeException("Categoria não encontrada: " + dto.getCategoriaName());
         }
 
         try {
-            restTemplate.getForObject(URL_USUARIO_SERVICE + "nome/" + meme.getUsuarioName(), Object.class);
+            restTemplate.getForObject(URL_USUARIO_SERVICE + "nome/" + dto.getUsuarioName(), Object.class);
         } catch (HttpClientErrorException.NotFound e) {
-            logger.warn("Usuário '{}' não encontrado.", meme.getUsuarioName());
+            logger.warn("Usuário '{}' não encontrado.", dto.getUsuarioName());
             meterRegistry.counter("meme.criar.usuario.naoencontrado").increment();
-            throw new RuntimeException("Usuário não encontrado: " + meme.getUsuarioName());
+            throw new RuntimeException("Usuário não encontrado: " + dto.getUsuarioName());
         }
-
+        
+        Meme meme = new Meme();
+        meme.setName(dto.getName());
+        meme.setDescription(dto.getDescription());
+        meme.setUrl(dto.getUrl());
+        meme.setUsuarioName(dto.getUsuarioName());
+        meme.setCategoriaName(dto.getCategoriaName());
         meme.setDataCadastro(LocalDate.now());
         Meme salvo = repositoriMeme.save(meme);
 

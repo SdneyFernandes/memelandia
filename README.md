@@ -1,6 +1,6 @@
 # 📚 Projeto Memelandia - Sistema de Microsserviços
 
-Este projeto é uma arquitetura de microsserviços em Spring Boot para gestão de memes, usuários e categorias, utilizando Docker para orquestração dos serviços.
+Este projeto é uma arquitetura de microsserviços em Spring Boot para gestão de memes, usuários e categorias.
 
 ## 🏗 Estrutura dos Microsserviços
 
@@ -26,7 +26,6 @@ Este projeto é uma arquitetura de microsserviços em Spring Boot para gestão d
 - Micrometer + Prometheus (Métricas)
 - Zipkin (Tracing distribuido )
 - RabbitMQ (Mensageria + eventos)
-- Docker & Docker Compose
 
 ---
 
@@ -35,17 +34,10 @@ Este projeto é uma arquitetura de microsserviços em Spring Boot para gestão d
 ### 1. Pré-requisitos
 - Java 21+
 - Maven 3.8+
-- Docker instalado
-- Docker Compose instalado
 
 ### 2. Subir os Microsserviços
 
-Execute no diretório raiz do projeto:
-docker-compose up --build
-
-🐳 Isso irá subir todos os serviços, incluindo Prometheus, Eureka, RabbitMQ, Zipkin e os microsserviços.
-
----
+> Cada serviço pode ser executado via `mvn spring-boot:run`
 
 ## 📖 Endpoints Principais
 
